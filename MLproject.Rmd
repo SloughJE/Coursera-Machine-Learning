@@ -1,0 +1,154 @@
+---
+title: 'Practical Machine Learning Project: Weight Lifting Exercise Classification'
+author: "John Slough II"
+date: "12 July 2015"
+output: html_document
+---
+
+**Introduction**
+
+This project is concerned with identifying the execution type of an exercise, the Unilateral Dumbbell Biceps Curl. The dataset includes readings from motion sensors on participants bodies'. These readings will be used to classify the performed exercise into five categories: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E). Please see the website http://groupware.les.inf.puc-rio.br/har for more information.  
+
+**The Data** 
+
+Processing:
+```{r,echo=FALSE,cache=FALSE}
+
+#setwd("~/Desktop/Courses/Coursera/Machine Learning/Project")
+
+library(caret)
+library(randomForest)
+library(ggthemes)
+library(gridExtra)
+library(ggplot2)
+
+train = read.csv("pml-training.csv",header=TRUE)
+train_used = train[,c(8:11,37:49,60:68,84:86,102,113:124,140,151:160)]
+
+```
+
+
+The raw dataset contained `r nrow(train)` rows of data, with `r ncol(train)` variables. Many variables contained largely missing data (usually with only one row of data), so these were removed from the dataset. In addition, variables not concerning the movement sensors were also removed. This resulted in a dataset of `r ncol(train_used)` variables.
+
+To understand the structure of the data a bit better, density plots were made of a selection of the data. These are displayed below.
+
+```{r,fig.width=7, fig.height=4,center=TRUE,fig.align='center',echo=FALSE}
+# density plots of some variables
+
+A=ggplot() + geom_density(aes(x=gyros_belt_x), colour="red", data=train_used) + 
+  geom_density(aes(x=gyros_belt_y), colour="green", data=train_used)+
+  geom_density(aes(x=gyros_belt_z), colour="blue", data=train_used)+
+  theme_few()+xlab("Gyro Belt (xyz)")
+
+B=ggplot() +geom_density(aes(x=roll_belt), colour="red", data=train_used) +
+  geom_density(aes(x=pitch_belt), colour="green", data=train_used)+
+  geom_density(aes(x=yaw_belt), colour="blue", data=train_used)+theme_few()+xlab("Pitch Belt (xyz)")
+
+C=ggplot() +geom_density(aes(x=magnet_belt_x), colour="red", data=train_used) +
+  geom_density(aes(x=magnet_belt_y), colour="green", data=train_used)+
+  geom_density(aes(x=magnet_belt_z), colour="blue", data=train_used)+theme_few()+xlab("Magnet Belt (xyz)")
+
+D=ggplot() +geom_density(aes(x=roll_dumbbell), colour="red", data=train_used) +
+  geom_density(aes(x=pitch_dumbbell), colour="green", data=train_used)+
+  geom_density(aes(x=yaw_dumbbell), colour="blue", data=train_used)+theme_few()+xlab("Dumbell Movement (yaw, pitch, roll)")
+
+Dplots=arrangeGrob(A, B, C, D ,nrow = 2, ncol = 2)
+Dplots
+
+```
+
+It appears from the structure that any model based classification method would not work very well.
+
+**Partitioning the Data**
+
+The dataset was partitioned into training and testing datasets, with 60% of the original data going to the training set and 40% to the testing set. The model was built with the training dataset, then tested on the testing dataset.  The following code performs this procedure:
+
+```{r, echo=TRUE}
+# partition training dataset into 60/40 train/test
+train_part = createDataPartition(train_used$classe, p = 0.6, list = FALSE)
+training = train_used[train_part, ]
+testing = train_used[-train_part, ]
+##
+```
+
+
+**The Model**
+
+Many methods of classification were attempted, including niave Bayes, multinomial logistic regression, and Support Vector Machines. It was determined that the Random Forest method produced the best results. In addition, principal component analysis was attempted however this greatly reduced the prediction accuracy. 
+
+Cross validation was not used, as, according to the creators of the Random Forest algorithm:
+"In random forests, there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error." 
+ - Leo Breiman and Adele Cutler
+
+The R code is shown below, as is the confusion matrix.  The OOB error rate in the training and the confusion matrix is shown below.  For informational purposes a plot of the error rate versus number of trees is also shown.  
+
+```{r, echo=TRUE,fig.width=7, fig.height=4,fig.align='center'}
+set.seed(1777)
+random_forest=randomForest(classe~.,data=training,ntree=50,importance=TRUE)
+random_forest
+plot(random_forest,main="Random Forest: Error Rate vs Number of Trees")
+
+```
+
+
+**Variable Importance**
+
+It may be of interest to know which variables were most 'important' in the building of the model. This can be seen by plotting the mean decrease in accuracy and the mean decrease in the gini coefficient per variable. In short, The more the accuracy of the random forest decreases due to the exclusion (or permutation) of a single variable, the more important that variable is deemed to be. The mean decrease in Gini coefficient is a measure of how each variable contributes to the homogeneity of the nodes and leaves in the resulting random forest. (from https://dinsdalelab.sdsu.edu/metag.stats/code/randomforest.html)
+
+```{r, echo=TRUE,fig.width=10, fig.height=6.5,fig.align='center'}
+imp=importance(random_forest)
+impL=imp[,c(6,7)]
+imp.ma=as.matrix(impL)
+imp.df=data.frame(imp.ma)
+
+write.csv(imp.df, "imp.df.csv", row.names=TRUE)
+imp.df.csv=read.csv("imp.df.csv",header=TRUE)
+
+colnames(imp.df.csv)=c("Variable","MeanDecreaseAccuracy","MeanDecreaseGini")
+imp.sort =  imp.df.csv[order(-imp.df.csv$MeanDecreaseAccuracy),] 
+
+imp.sort = transform(imp.df.csv, 
+  Variable = reorder(Variable, MeanDecreaseAccuracy))
+
+VIP=ggplot(data=imp.sort, aes(x=Variable, y=MeanDecreaseAccuracy)) + 
+  ylab("Mean Decrease Accuracy")+xlab("")+
+    geom_bar(stat="identity",fill="skyblue",alpha=.8,width=.75)+ 
+    coord_flip()+theme_few() 
+
+imp.sort.Gini <- transform(imp.df.csv, 
+                      Variable = reorder(Variable, MeanDecreaseGini))
+
+VIP.Gini=ggplot(data=imp.sort.Gini, aes(x=Variable, y=MeanDecreaseGini)) + 
+  ylab("Mean Decrease Gini")+xlab("")+
+  geom_bar(stat="identity",fill="skyblue",alpha=.8,width=.75)+ 
+  coord_flip()+theme_few() 
+
+VarImpPlot=arrangeGrob(VIP, VIP.Gini,ncol=2,main=textGrob("Variable Importance Plot",vjust=1))
+VarImpPlot
+
+```
+
+
+**Model Applied to Testing Dataset**
+
+The model was applied to the testing dataset and generated predictions for the class of weightlifting type.  Below is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, more than 99%. Hopefully this will not lead to overfitting for the final 20 test subjects.
+
+
+```{r, echo=TRUE}
+test_predictions = predict(random_forest, newdata=testing)
+confusionMatrix(test_predictions,testing$classe)
+
+```
+
+```{r,echo=FALSE}
+final_test=read.csv("pml-testing.csv")
+final_test_predictions = predict(random_forest, newdata=final_test)
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(final_test_predictions)
