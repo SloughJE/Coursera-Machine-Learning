@@ -32,7 +32,7 @@ The raw dataset contained `r nrow(train)` rows of data, with `r ncol(train)` var
 
 To understand the structure of the data a bit better, density plots were made of a selection of the data. These are displayed below.
 
-```{r,fig.width=7, fig.height=4,center=TRUE,fig.align='center',echo=FALSE}
+```{r,fig.width=8, fig.height=5,center=TRUE,fig.align='center',echo=FALSE}
 # density plots of some variables
 
 A=ggplot() + geom_density(aes(x=gyros_belt_x), colour="red", data=train_used) + 
@@ -76,13 +76,11 @@ testing = train_used[-train_part, ]
 
 Many methods of classification were attempted, including niave Bayes, multinomial logistic regression, and Support Vector Machines. It was determined that the Random Forest method produced the best results. In addition, principal component analysis was attempted however this greatly reduced the prediction accuracy. 
 
-Cross validation was not used, as, according to the creators of the Random Forest algorithm:
-"In random forests, there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error." 
- - Leo Breiman and Adele Cutler
+Cross validation was not used, as, according to the creators of the Random Forest algorithm Leo Breiman and Adele Cutler, there is no need for cross-validation. See http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr for more information. 
 
-The R code is shown below, as is the confusion matrix.  The OOB error rate in the training and the confusion matrix is shown below.  For informational purposes a plot of the error rate versus number of trees is also shown.  
+The R code is shown below, as is the confusion matrix.  The out of the bag error rate in the training and the confusion matrix is shown below.  For informational purposes a plot of the error rate versus number of trees is also shown.  
 
-```{r, echo=TRUE,fig.width=7, fig.height=4,fig.align='center'}
+```{r, echo=TRUE,fig.width=8, fig.height=5,fig.align='center'}
 set.seed(1777)
 random_forest=randomForest(classe~.,data=training,ntree=50,importance=TRUE)
 random_forest
@@ -95,7 +93,7 @@ plot(random_forest,main="Random Forest: Error Rate vs Number of Trees")
 
 It may be of interest to know which variables were most 'important' in the building of the model. This can be seen by plotting the mean decrease in accuracy and the mean decrease in the gini coefficient per variable. In short, The more the accuracy of the random forest decreases due to the exclusion (or permutation) of a single variable, the more important that variable is deemed to be. The mean decrease in Gini coefficient is a measure of how each variable contributes to the homogeneity of the nodes and leaves in the resulting random forest. (from https://dinsdalelab.sdsu.edu/metag.stats/code/randomforest.html)
 
-```{r, echo=TRUE,fig.width=10, fig.height=6.5,fig.align='center'}
+```{r, echo=TRUE,fig.width=11, fig.height=6.5,fig.align='center'}
 imp=importance(random_forest)
 impL=imp[,c(6,7)]
 imp.ma=as.matrix(impL)
