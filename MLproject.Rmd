@@ -130,12 +130,13 @@ VarImpPlot
 
 **Model Applied to Testing Dataset**
 
-The model was applied to the testing dataset and generated predictions for the class of weightlifting type.  Below is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, more than 99%. Hopefully this will not lead to overfitting for the final 20 test subjects.
-
-
 ```{r, echo=TRUE}
 test_predictions = predict(random_forest, newdata=testing)
-confusionMatrix(test_predictions,testing$classe)
-
+CM = confusionMatrix(test_predictions,testing$classe)
+CM
 ```
+
+The model was applied to the testing dataset and generated predictions for the class of weightlifting type.  Above is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, $`r round(CM$overall['Accuracy'],digits=4)`$. Hopefully this will not lead to overfitting for the final 20 test subjects.
+
+
 
