@@ -148,7 +148,7 @@ CV = trainControl(method = "cv", number = 5, allowParallel = T, verboseIter = F)
 CVmodel = train(classe ~ ., data = training, method = "rf", prox = F, trControl = CV)
 CVmodel
 predsCVmodel = predict(CVmodel, newdata = testing)
-predsCVmodel
+
 confMatrix = confusionMatrix(predsCVmodel,testing$classe)
 confMatrix
 
