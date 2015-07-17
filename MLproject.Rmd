@@ -144,9 +144,15 @@ The model was applied to the testing dataset and generated predictions for the c
 Just in case the grader feels it is necessary to do cross validation, I have added the code and error rates from the CV from the caret package. The cross-validation error is shown below. 
 
 ```{r, echo=TRUE,fig.width=8, fig.height=5,fig.align='center'}
-CV = trainControl(method = "cv", number = 10, allowParallel = TRUE, verboseIter = FALSE)
-CVmodel = train(classe ~ ., data = training, method = "rf", prox = FALSE, trControl = CV)
+CV = trainControl(method = "cv", number = 5, allowParallel = T, verboseIter = F)
+CVmodel = train(classe ~ ., data = training, method = "rf", prox = F, trControl = CV)
 CVmodel
+predsCVmodel = predict(CVmodel, newdata = testing)
+predsCVmodel
+confMatrix = confusionMatrix(predsCVmodel,testing$classe)
+confMatrix
 
 ```
+
+As can be seen, model with CV leads to slightly poorer performance than the previous one. As such, the previous model will remain. 
 
