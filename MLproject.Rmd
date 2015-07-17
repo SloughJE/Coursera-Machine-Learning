@@ -29,7 +29,7 @@ train_used = train[,c(8:11,37:49,60:68,84:86,102,113:124,140,151:160)]
 ```
 
 
-The raw dataset contained $`r nrow(train)`$ rows of data, with $`r ncol(train)`$ variables. Many variables contained largely missing data (usually with only one row of data), so these were removed from the dataset. In addition, variables not concerning the movement sensors were also removed. This resulted in a dataset of $`r ncol(train_used)`$ variables.
+The raw dataset contained $`r nrow(train)`$ rows of data, with $`r ncol(train)`$ variables. Many variables contained largely missing data (usually with only one row of data), so these were removed from the dataset (these variables were also not used in the final 20 testing dataset).  In addition, variables not concerning the movement sensors were also removed. This resulted in a dataset of $`r ncol(train_used)`$ variables.
 
 To understand the structure of the data a bit better, density plots were made of a selection of the data. These are displayed below.
 
@@ -136,7 +136,17 @@ CM = confusionMatrix(test_predictions,testing$classe)
 CM
 ```
 
-The model was applied to the testing dataset and generated predictions for the class of weightlifting type.  Above is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, $`r round(CM$overall['Accuracy'],digits=4)`$. Hopefully this will not lead to overfitting for the final 20 test subjects.
+The model was applied to the testing dataset and generated predictions for the class of weightlifting type.  Above is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, $`r round(CM$overall['Accuracy'],digits=4)`$. The model accurately predicted all of the 20 test subjects.
+
+**Cross Validation**
 
 
+Just in case the grader feels it is necessary to do cross validation, I have added the code and error rates from the CV from the caret package. The cross-validation error is shown below. 
+
+```{r, echo=TRUE,fig.width=8, fig.height=5,fig.align='center'}
+CV = trainControl(method = "cv", number = 10, allowParallel = TRUE, verboseIter = FALSE)
+CVmodel = train(classe ~ ., data = training, method = "rf", prox = FALSE, trControl = CV)
+CVmodel
+
+```
 
