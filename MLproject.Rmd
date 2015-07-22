@@ -15,14 +15,14 @@ This project is concerned with identifying the execution type of an exercise, th
 Processing:
 ```{r,echo=FALSE,cache=FALSE}
 
-#setwd("~/Desktop/Courses/Coursera/Machine Learning/Project")
+setwd("~/Desktop/Courses/Coursera/Machine Learning/Project")
 
 library(caret)
 library(randomForest)
 library(ggthemes)
 library(gridExtra)
 library(ggplot2)
-
+library(grid)
 train = read.csv("pml-training.csv",header=TRUE)
 train_used = train[,c(8:11,37:49,60:68,84:86,102,113:124,140,151:160)]
 
@@ -54,11 +54,11 @@ D=ggplot() +geom_density(aes(x=roll_dumbbell), colour="red", data=train_used) +
   geom_density(aes(x=yaw_dumbbell), colour="blue", data=train_used)+theme_few()+xlab("Dumbell Movement (yaw, pitch, roll)")
 
 Dplots=arrangeGrob(A, B, C, D ,nrow = 2, ncol = 2)
-Dplots
+grid.draw(Dplots)
 
 ```
 
-It appears from the structure that any model based classification method would not work very well.
+
 
 **Partitioning the Data**
 
@@ -122,8 +122,8 @@ VIP.Gini=ggplot(data=imp.sort.Gini, aes(x=Variable, y=MeanDecreaseGini)) +
   geom_bar(stat="identity",fill="skyblue",alpha=.8,width=.75)+ 
   coord_flip()+theme_few() 
 
-VarImpPlot=arrangeGrob(VIP, VIP.Gini,ncol=2,main=textGrob("Variable Importance Plot",vjust=1))
-VarImpPlot
+VarImpPlot=arrangeGrob(VIP, VIP.Gini,ncol=2)
+grid.draw(VarImpPlot)
 
 ```
 
