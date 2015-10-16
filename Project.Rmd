@@ -1,9 +1,13 @@
-
 ---
 title: 'Practical Machine Learning Project: Weight Lifting Exercise Classification'
 author: "John Slough II"
 date: "12 July 2015"
-output: html_document
+output:
+  html_document: default
+  pdf_document:
+    keep_tex: yes
+header-includes: \usepackage{graphicx}
+graphics: yes
 ---
 
 **Introduction**
@@ -13,9 +17,9 @@ This project is concerned with identifying the execution type of an exercise, th
 **The Data** 
 
 Processing:
-```{r,echo=FALSE,cache=FALSE}
+```{r,echo=TRUE,cache=FALSE,message=FALSE,warning=FALSE}
 
-setwd("~/Desktop/Courses/Coursera/Machine Learning/Project")
+setwd("~/Desktop/Courses/Coursera/Data Science Specialization/Machine Learning/Project")
 
 library(caret)
 library(randomForest)
@@ -23,17 +27,18 @@ library(ggthemes)
 library(gridExtra)
 library(ggplot2)
 library(grid)
+
 train = read.csv("pml-training.csv",header=TRUE)
 train_used = train[,c(8:11,37:49,60:68,84:86,102,113:124,140,151:160)]
 
 ```
 
 
-The raw dataset contained $`r nrow(train)`$ rows of data, with $`r ncol(train)`$ variables. Many variables contained largely missing data (usually with only one row of data), so these were removed from the dataset (these variables were also not used in the final 20 testing dataset).  In addition, variables not concerning the movement sensors were also removed. This resulted in a dataset of $`r ncol(train_used)`$ variables.
+The raw dataset contained $`r nrow(train)`$ rows of data, with $`r ncol(train)`$ variables. Many variables contained largely missing data (usually with only one row of data), so these were removed from the dataset. In addition, variables not concerning the movement sensors were also removed. This resulted in a dataset of $`r ncol(train_used)`$ variables.
 
 To understand the structure of the data a bit better, density plots were made of a selection of the data. These are displayed below.
 
-```{r,fig.width=8, fig.height=5,center=TRUE,fig.align='center',echo=FALSE}
+```{r,fig.width=7, fig.height=4,center=TRUE,fig.align='center',echo=FALSE}
 # density plots of some variables
 
 A=ggplot() + geom_density(aes(x=gyros_belt_x), colour="red", data=train_used) + 
@@ -59,10 +64,9 @@ grid.draw(Dplots)
 ```
 
 
-
 **Partitioning the Data**
 
-The dataset was partitioned into training and testing datasets, with 60% of the original data going to the training set and 40% to the testing set. The model was built with the training dataset, then tested on the testing dataset. The following code performs this procedure:
+The dataset was partitioned into training and testing datasets, with 60% of the original data going to the training set and 40% to the testing set. The model was built with the training dataset, then tested on the testing dataset.  The following code performs this procedure:
 
 ```{r, echo=TRUE}
 # partition training dataset into 60/40 train/test
@@ -75,15 +79,17 @@ testing = train_used[-train_part, ]
 
 **The Model**
 
-Many methods of classification were attempted, including niave Bayes, multinomial logistic regression, and Support Vector Machines. It was determined that the Random Forest method produced the best results. In addition, pre-processing using principal component analysis was attempted however this greatly reduced the prediction accuracy. 
+Many methods of classification were attempted, including niave Bayes, multinomial logistic regression, and decision trees. It was determined that the Random Forest method produced the best results. In addition, principal component analysis was attempted however this greatly reduced the prediction accuracy. 
 
-Cross validation was not used, as, according to the creators of the Random Forest algorithm Leo Breiman and Adele Cutler, there is no need for cross-validation. See http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr for more information. 
+Cross validation was not used, as, according to the creators of the Random Forest algorithm:
+"In random forests, there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error." 
+ - Leo Breiman and Adele Cutler
 
-The R code is shown below, as is the confusion matrix. The out of the bag error rate in the training and the confusion matrix is shown below. For informational purposes a plot of the error rate versus number of trees is also shown.  
+The R code is shown below, as is the confusion matrix.  The OOB error rate in the training and the confusion matrix is shown below.  For informational purposes a plot of the error rate versus number of trees is also shown.  
 
-```{r, echo=TRUE,fig.width=8, fig.height=5,fig.align='center'}
+```{r, echo=TRUE,fig.width=7, fig.height=4,fig.align='center'}
 set.seed(1777)
-random_forest=randomForest(classe~.,data=training,ntree=500,importance=TRUE)
+random_forest=randomForest(classe~.,data=training,ntree=100,importance=TRUE)
 random_forest
 plot(random_forest,main="Random Forest: Error Rate vs Number of Trees")
 
@@ -92,9 +98,9 @@ plot(random_forest,main="Random Forest: Error Rate vs Number of Trees")
 
 **Variable Importance**
 
-It may be of interest to know which variables were most 'important' in the building of the model. This can be seen by plotting the mean decrease in accuracy and the mean decrease in the Gini coefficient per variable. In short, the more the accuracy of the random forest decreases due to the exclusion (or permutation) of a single variable, the more important that variable is deemed to be. The mean decrease in the Gini coefficient is a measure of how each variable contributes to the homogeneity of the nodes and leaves in the resulting random forest. (from https://dinsdalelab.sdsu.edu/metag.stats/code/randomforest.html)
+It may be of interest to know which variables were most 'important' in the building of the model. This can be seen by plotting the mean decrease in accuracy and the mean decrease in the gini coefficient per variable. In short, The more the accuracy of the random forest decreases due to the exclusion (or permutation) of a single variable, the more important that variable is deemed to be. The mean decrease in Gini coefficient is a measure of how each variable contributes to the homogeneity of the nodes and leaves in the resulting random forest. (from https://dinsdalelab.sdsu.edu/metag.stats/code/randomforest.html)
 
-```{r, echo=TRUE,fig.width=11, fig.height=6.5,fig.align='center'}
+```{r, echo=TRUE,fig.width=10, fig.height=8,fig.align='center'}
 imp=importance(random_forest)
 impL=imp[,c(6,7)]
 imp.ma=as.matrix(impL)
@@ -130,29 +136,29 @@ grid.draw(VarImpPlot)
 
 **Model Applied to Testing Dataset**
 
+
 ```{r, echo=TRUE}
 test_predictions = predict(random_forest, newdata=testing)
-CM = confusionMatrix(test_predictions,testing$classe)
-CM
+confusionMatrix(test_predictions,testing$classe)
+
 ```
 
-The model was applied to the testing dataset and generated predictions for the class of weightlifting type.  Above is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, $`r round(CM$overall['Accuracy'],digits=4)`$. The model accurately predicted all of the 20 test subjects.
+The model was applied to the testing dataset and generated predictions for the class of weightlifting type. Above is the code that was used and the confusion matrix for the testing dataset. The accuracy is very high, at over 99%. The model accurately predicted all of the 20 test subjects.
 
-**Cross Validation**
+**Cross-validation**
 
+Just in case the grader feels it is necessary to do cross validation, I have added the code and error rates from the CV from the caret package. The cross-validation error is shown below.
 
-Just in case the grader feels it is necessary to do cross validation, I have added the code and error rates from the CV from the caret package. The cross-validation error is shown below. 
-
-```{r, echo=TRUE,fig.width=8, fig.height=5,fig.align='center'}
-CV = trainControl(method = "cv", number = 5, allowParallel = T, verboseIter = F)
-CVmodel = train(classe ~ ., data = training, method = "rf", prox = F, trControl = CV)
+```{r,echo=FALSE}
+CV = trainControl(method = "cv", number = 5, allowParallel = TRUE, verboseIter = FALSE)
+CVmodel = train(classe ~ ., data = training, method = "rf", prox = FALSE, trControl = CV)
 CVmodel
+```
+
+```{r, echo=FALSE}
 predsCVmodel = predict(CVmodel, newdata = testing)
 
 confMatrix = confusionMatrix(predsCVmodel,testing$classe)
 confMatrix
-
 ```
-
-As can be seen, model with CV leads to slightly poorer performance than the previous one. As such, the previous model will remain. 
 
